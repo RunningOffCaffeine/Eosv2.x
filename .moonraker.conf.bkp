@@ -36,15 +36,6 @@ channel = dev
 refresh_interval = 168
 enable_auto_refresh = true
 
-[update_manager KlipperScreen]
-install_script = /home/brite/KlipperScreen/scripts/KlipperScreen-install.sh
-requirements = /home/brite/KlipperScreen/scripts/KlipperScreen-requirements.txt
-env = /home/brite/.KlipperScreen-env/bin/python
-managed_services = KlipperScreen
-origin = https://github.com/KlipperScreen/KlipperScreen.git
-path = /home/brite/KlipperScreen
-type = git_repo
-
 [update_manager crowsnest]
 type = git_repo
 path = ~/crowsnest
@@ -142,4 +133,13 @@ origin = https://github.com/andrewmcgr/klipper_tmc_autotune.git
 managed_services = klipper
 primary_branch = main
 install_script = install.sh
+
+[update_manager KlipperScreen]
+install_script = /home/brite/KlipperScreen/scripts/KlipperScreen-install.sh
+requirements = /home/brite/KlipperScreen/scripts/KlipperScreen-requirements.txt
+env = /home/brite/.KlipperScreen-env/bin/python
+managed_services = KlipperScreen
+origin = https://github.com/KlipperScreen/KlipperScreen.git
+path = /home/brite/KlipperScreen
+type = git_repo
 
