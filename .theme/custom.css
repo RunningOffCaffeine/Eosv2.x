@@ -1,0 +1,338 @@
+/*
+ * ===================================================================
+ * MAINSIL THEME: BLACK & WHITE (v4.0 - Stable)
+ * ===================================================================
+ * DESCRIPTION: A clean, minimalist grayscale theme with functional
+ * color accents for warnings and errors.
+ * REVISIONS:
+ * - v4.0: Consolidated all fixes. Finalized header alignment and
+ * button styling for consistency across all types.
+ * - v3.x: Iteratively debugged button borders, shadows, colors,
+ * and header element alignment.
+ * - v3.0: Organized into titled sections for better readability.
+ * - v2.0: Corners sharpened to a subtle 8px radius.
+ * - v1.0: Initial black, white, and gray theme.
+ * ===================================================================
+ */
+
+/*
+ * -------------------------------------------
+ * # Global Styles & Root Variables
+ * -------------------------------------------
+ */
+:root {
+    --v-panel-base: transparent;
+    --v-primary-base: #757575;     /* Medium Gray for primary actions */
+    --v-secondary-base: #616161;   /* Darker Gray for secondary elements */
+    --v-warning-base: #FFB74D;     /* Light Orange for warnings/active icons */
+    --v-error-base: #BF1D1D;       /* Bright Red for errors */
+    --v-success-base: #9E9E9E;     /* Medium-Light Gray for success states */
+}
+
+body {
+    color: #E0E0E0;
+}
+
+/*
+ * -------------------------------------------
+ * # Main Layout: Header, Sidebar, Content Area
+ * -------------------------------------------
+ */
+
+/* ### Header Bar ### */
+.v-sheet.v-app-bar.v-toolbar {
+    height: 70px !important;
+    box-shadow: 0 2px 4px -1px #0003, 0 4px 5px #00000024, 0 1px 10px #0000001f !important;
+    background-color: rgba(24, 24, 24, 0.75) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+.topbar .v-toolbar__content {
+    height: 70px !important;
+    display: flex;
+    align-items: center;
+}
+.topbar .v-btn {
+    /* --- Definitive Height Fix --- */
+    box-sizing: border-box !important;   /* Ensures consistent height calculation */
+    height: 50px !important;            /* The target height */
+    max-height: 50px !important;         /* Reinforces the height */
+    margin-top: auto !important;        /* Use auto margin for perfect flex centering */
+    margin-bottom: auto !important;     /* Use auto margin for perfect flex centering */
+    padding-top: 0 !important;           /* Resets any conflicting vertical padding */
+    padding-bottom: 0 !important;        /* Resets any conflicting vertical padding */
+    display: inline-flex !important;     /* Use flexbox for internal alignment */
+    align-items: center !important;      /* Vertically centers content inside the button */
+}
+.nav-logo {
+    height: 50px!important;
+    margin-top: auto !important;        /* Also apply auto margin to the logo */
+    margin-bottom: auto !important;     /* to ensure perfect alignment with buttons */
+}
+/* Removes the border from the top-left navigation icon */
+.v-app-bar__nav-icon.v-btn--icon {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+
+/* ### Navigation Sidebar ### */
+nav.v-navigation-drawer {
+    top: 70px !important;
+    box-shadow: 0px 0px 20px -5px #000000;
+    z-index: 10;
+    background: rgba(33, 33, 33, 0.7);
+    border-right: none;
+}
+.v-navigation-drawer__image {
+    opacity: 0;
+}
+.theme--dark.v-navigation-drawer:not(.v-navigation-drawer--floating) .v-navigation-drawer__border {
+    background-color: transparent;
+}
+.active-nav-item {
+    border-radius: 8px !important;
+}
+
+/* ### Main Content Area ### */
+.v-main {
+    padding-top: 70px !important;
+}
+
+/*
+ * -------------------------------------------
+ * # Cards & Panels
+ * -------------------------------------------
+ */
+.v-sheet.v-card {
+    box-shadow: none;
+    border-radius: 8px !important;
+    background: transparent;
+}
+.v-card > :first-child:not(.v-btn):not(.v-chip):not(.v-avatar) {
+    border-radius: 8px 8px 0 0;
+}
+.v-card > :last-child:not(.v-btn):not(.v-chip):not(.v-avatar) {
+    border-radius: 0 0 8px 8px;
+    background: rgba(40, 40, 40, 0.8) !important;
+}
+.row.my-2.mx-0 {
+    border-radius: 8px !important;
+    background: rgba(23, 23, 23, 0.4) !important;
+}
+
+/*
+ * -------------------------------------------
+ * # Modals, Menus & Dialogs
+ * -------------------------------------------
+ */
+.v-dialog {
+    border-radius: 8px !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: none;
+}
+.v-menu__content {
+    border-radius: 8px !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: none;
+    background: rgba(50, 50, 50, 0.7);
+}
+
+/*
+ * -------------------------------------------
+ * # Buttons & Inputs
+ * -------------------------------------------
+ */
+.v-btn.v-size--default {
+    border-radius: 8px !important;
+    transition: all 0.15s ease-in-out;
+    margin: 2px !important;
+    /* --- FIX: Force remove shadows and rely on a true, even border --- */
+    box-shadow: none !important;
+    border: 1px solid;
+}
+
+/* ### Default Gray Button ### */
+.theme--dark.v-btn.v-btn--has-bg:not(.primary):not(.warning):not(.error):not(.success) {
+    background-color: rgba(58, 58, 58, 0.8) !important;
+    border-color: rgba(120, 120, 120, 0.3) !important;
+    color: #E0E0E0 !important;
+}
+
+/* ### State-Colored Buttons (Primary, Warning, etc.) ### */
+.v-btn.primary {
+    background-color: var(--v-primary-base) !important;
+    border-color: var(--v-primary-base) !important;
+    color: white !important;
+}
+.v-btn.warning {
+    background-color: var(--v-warning-base) !important;
+    border-color: var(--v-warning-base) !important;
+    color: #1E1E1E !important;
+}
+.v-btn.error {
+    background-color: var(--v-error-base) !important;
+    border-color: var(--v-error-base) !important;
+    color: #1E1E1E !important;
+}
+.v-btn.success {
+    background-color: var(--v-success-base) !important;
+    border-color: var(--v-success-base) !important;
+    color: #1E1E1E !important;
+}
+
+/* ### Button Hover State ### */
+.theme--dark.v-btn.v-btn--has-bg:hover:not(.v-btn--disabled) {
+    filter: brightness(120%);
+    transform: scale(1.02);
+}
+
+/* ### Button Active/Pressed State ### */
+.theme--dark.v-btn.v-btn--has-bg:active:not(.v-btn--disabled) {
+    filter: brightness(90%);
+    transform: scale(0.98);
+}
+
+/* ### Button Disabled State ### */
+.v-btn.v-btn--disabled {
+    background-color: rgba(58, 58, 58, 0.4) !important;
+    color: #757575 !important;
+    border-color: rgba(80, 80, 80, 0.5) !important;
+}
+
+.v-btn--is-elevated {
+    box-shadow: none;
+}
+.theme--dark.v-text-field--solo > .v-input__control > .v-input__slot {
+    background: rgba(40, 40, 40, 0.6);
+    border-radius: 6px;
+}
+.v-ripple__container,
+.v-input--selection-controls__input:hover .v-input--selection-controls__ripple:before {
+    color: transparent;
+    background: transparent;
+}
+.active .v-icon {
+    color: var(--v-warning-base) !important;
+}
+
+/*
+ * -------------------------------------------
+ * # Tables & Lists
+ * -------------------------------------------
+ */
+.theme--dark.v-data-table {
+    background: transparent;
+    color: #E0E0E0;
+}
+.theme--dark.v-data-table > .v-data-table__wrapper > table > tbody > tr:hover:not(.v-data-table__expanded__content):not(.v-data-table__empty-wrapper) {
+    background: rgba(66, 66, 66, 0.8);
+    border-radius: 8px;
+}
+.theme--dark.v-list {
+    background: transparent;
+}
+.dragable-item {
+    border-radius: 8px !important;
+    background-color: rgba(40, 40, 40, 0.7) !important;
+}
+
+/*
+ * -------------------------------------------
+ * # Specific Components: G-Code, Alerts, etc.
+ * -------------------------------------------
+ */
+/* ### G-Code Viewer & Editor ### */
+.viewer {
+    opacity: 0.9;
+    border: none !important;
+}
+canvas.viewer {
+    border-radius: 8px !important;
+    border: 1px solid #3F3F3F !important;
+}
+.codeview {
+    border-radius: 8px !important;
+    background: rgba(23, 23, 23, 0.5) !important;
+    border: 1px solid #3F3F3F !important;
+}
+.cm-editor.ͼo {
+    background-color: rgba(23, 23, 23, 0.7) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+.ͼ2 .cm-gutters {
+    background-color: rgba(10, 10, 10, 0.8);
+    color: #E0E0E0;
+}
+.ͼ2 .cm-activeLineGutter {
+    background-color: #616161;
+}
+.cm-activeLine {
+    background-color: rgba(66, 66, 66, 0.5) !important;
+}
+
+/* ### Alerts & Statuses ### */
+.v-alert:not(.v-sheet--tile) {
+    border-radius: 8px !important;
+}
+.v-application .error {
+    background-color: rgba(255, 115, 115, 0.90) !important;
+    border-color: var(--v-error-base) !important;
+}
+.v-application .primary {
+    background-color: rgba(117, 117, 117, 0.3) !important;
+    border-color: var(--v-primary-base) !important;
+}
+
+/*
+ * -------------------------------------------
+ * # Misc Styles
+ * -------------------------------------------
+ */
+/* ### Images & Videos ### */
+img, video {
+    border-radius: 8px !important;
+}
+
+/* ### Scrollbar ### */
+::-webkit-scrollbar {
+    background-color: rgba(25, 25, 25, 0.1) !important;
+    width: 7px;
+    height: 7px;
+}
+::-webkit-scrollbar-thumb {
+    background-color: rgba(145, 145, 145, 0.7);
+    border-radius: 4px;
+    border: 0;
+}
+
+/* ### Typography ### */
+.v-application .text-body-2 {
+    font-size: .7rem !important;
+}
+.v-card__subtitle, .v-card__text {
+    font-size: 0.775rem;
+}
+.v-tab {
+    font-size: .675rem;
+}
+
+/* Final fix for nested buttons in panel headers (e.g., Temperatures) */
+.panel-toolbar .v-toolbar__items {
+    display: flex !important;
+    align-items: center !important;
+    height: 100%;
+}
+
+.panel-toolbar .v-toolbar__items .v-btn {
+    height: 36px !important;
+}
+
+/* Final positional override for the Presets button */
+.panel-toolbar .v-btn.pa-1 {
+    position: relative;
+    top: 0px; /* Nudge up 0px. Don't know why this works, it just does. */
+}
