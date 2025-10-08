@@ -143,3 +143,19 @@ origin = https://github.com/KlipperScreen/KlipperScreen.git
 path = /home/brite/KlipperScreen
 type = git_repo
 
+[update_manager octoapp]
+type = git_repo
+channel = beta
+primary_branch = release
+path = /home/brite/octoapp
+origin = https://github.com/crysxd/OctoApp-Plugin.git
+env = /home/brite/octoapp-env/bin/python
+requirements = requirements.txt
+install_script = install.sh
+managed_services = 
+	octoapp
+
+[announcements]
+subscriptions = 
+	octoapp.
+
