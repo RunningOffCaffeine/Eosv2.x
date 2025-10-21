@@ -27,6 +27,9 @@ cors_domains =
 
 [history]
 
+[analysis]
+platform = auto
+
 [spoolman]
 server = http://localhost:7912
 sync_rate = 5
@@ -157,5 +160,16 @@ managed_services =
 
 [announcements]
 subscriptions = 
-	octoapp.
+	octoeverywhere
+
+[update_manager octoeverywhere]
+type = git_repo
+channel = beta
+path = /home/brite/octoeverywhere
+origin = https://github.com/QuinnDamerell/OctoPrint-OctoEverywhere.git
+env = /home/brite/octoeverywhere-env/bin/python
+requirements = requirements.txt
+install_script = install.sh
+managed_services = 
+	octoeverywhere
 
