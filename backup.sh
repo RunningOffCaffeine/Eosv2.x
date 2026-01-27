@@ -34,7 +34,7 @@ fi
 # 4. Git Push
 cd $repo_folder
 git pull origin $branch --no-rebase
-git add .
+git add -A
 current_date=$(date +"%Y-%m-%d %T")
 git commit -m "Organized Backup: $current_date"
 git push origin $branch
