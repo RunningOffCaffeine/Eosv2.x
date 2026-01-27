@@ -1,48 +1,39 @@
 #!/bin/bash
 
 # --- CONFIGURATION ---
-config_folder=~/printer_data/config
+repo_folder=~/printer_data/config
 branch=main
+moonraker_dest=~/printer_data/database/moonraker-sql.db
+spoolman_dest=~/.local/share/spoolman/spoolman.db
 
-# Destination Paths
-moonraker_db_dest=~/printer_data/database/moonraker-sql.db
-spoolman_db_dest=~/.local/share/spoolman/spoolman.db
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+echo "!! WARNING: This will overwrite local data from folders.  !!"
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+read -p "Proceed with organized restore? (y/n): " confirm
 
-echo "--- Starting Restore Process ---"
+if [[ $confirm != [yY] ]]; then exit 1; fi
 
-# 1. Pull latest from GitHub
-echo "Pulling latest files from GitHub..."
-cd $config_folder
+# 1. Sync from GitHub
+cd $repo_folder
 git fetch origin
 git reset --hard origin/$branch
 
 # 2. Stop Services
-echo "Stopping services for safe restore..."
-sudo systemctl stop moonraker
-sudo systemctl stop spoolman
+sudo systemctl stop moonraker spoolman
 
-# 3. Restore Moonraker Database
-if [ -f "$config_folder/moonraker-sql.db" ]; then
-    echo "Restoring Moonraker DB..."
-    cp "$config_folder/moonraker-sql.db" "$moonraker_db_dest"
-else
-    echo "⚠ No Moonraker backup found in config folder."
+# 3. Restore Moonraker
+if [ -f "$repo_folder/backups/moonraker/moonraker-sql.db" ]; then
+    cp "$repo_folder/backups/moonraker/moonraker-sql.db" "$moonraker_dest"
+    echo "✔ Moonraker restored from backups/moonraker/"
 fi
 
-# 4. Restore Spoolman Database
-if [ -f "$config_folder/spoolman.db" ]; then
-    echo "Restoring Spoolman DB..."
-    # Ensure the directory exists first
+# 4. Restore Spoolman
+if [ -f "$repo_folder/backups/spoolman/spoolman.db" ]; then
     mkdir -p ~/.local/share/spoolman
-    cp "$config_folder/spoolman.db" "$spoolman_db_dest"
-else
-    echo "⚠ No Spoolman backup found in config folder."
+    cp "$repo_folder/backups/spoolman/spoolman.db" "$spoolman_dest"
+    echo "✔ Spoolman restored from backups/spoolman/"
 fi
 
 # 5. Restart Services
-echo "Restarting services..."
-sudo systemctl start moonraker
-sudo systemctl start spoolman
-
-echo "--- Restore Complete! ---"
-echo "Please perform a FIRMWARE_RESTART in your dashboard."
+sudo systemctl start moonraker spoolman
+echo "--- Restore Complete ---"
