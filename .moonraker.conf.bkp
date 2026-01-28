@@ -22,6 +22,8 @@ cors_domains =
 	*://my.mainsail.xyz
 	*://app.fluidd.xyz
 	*.octoeverywhere.com
+	*:7136
+	*:7912
 
 [octoprint_compat]
 
@@ -32,7 +34,7 @@ platform = auto
 
 [spoolman]
 server = http://localhost:7912
-sync_rate = 5
+sync_rate = 1
 
 [update_manager]
 channel = dev
@@ -117,6 +119,13 @@ is_system_service = False
 managed_services = klipper
 info_tags = 
 	desc=Beacon Surface Scanner
+
+[update_manager pgcode]
+type = git_repo
+primary_branch = main
+origin = https://github.com/Kragrathea/pgcode.git
+path = ~/pgcode
+is_system_service = False
 
 [update_manager Klippain-ShakeTune]
 type = git_repo

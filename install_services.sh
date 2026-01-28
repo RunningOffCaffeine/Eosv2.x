@@ -24,7 +24,7 @@ echo "🚀 Starting system and service installation..."
 
 # 1. Install System Dependencies for backup/restore (sqlite3, curl, git)
 echo "--- Checking System Dependencies ---"
-SYS_PACKAGES=(sqlite3 curl git)
+SYS_PACKAGES=(sqlite3 curl git libcamera-apps)
 PACKAGES_TO_INSTALL=()
 
 for pkg in "${SYS_PACKAGES[@]}"; do
