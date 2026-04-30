@@ -41,13 +41,6 @@ channel = dev
 refresh_interval = 168
 enable_auto_refresh = true
 
-[update_manager crowsnest]
-type = git_repo
-path = ~/crowsnest
-origin = https://github.com/mainsail-crew/crowsnest.git
-managed_services = crowsnest
-install_script = tools/pkglist.sh
-
 [update_manager z_calibration]
 type = git_repo
 path = ~/klipper_z_calibration
@@ -181,4 +174,14 @@ requirements = requirements.txt
 install_script = install.sh
 managed_services = 
 	octoeverywhere
+
+[update_manager crowsnest]
+type = git_repo
+path = ~/crowsnest
+origin = https://github.com/mainsail-crew/crowsnest.git
+primary_branch = v5
+managed_services = crowsnest
+system_dependencies = system-dependencies.json
+virtualenv = ~/crowsnest-env
+requirements = requirements.txt
 
