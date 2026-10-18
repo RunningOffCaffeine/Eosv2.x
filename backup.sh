@@ -13,13 +13,16 @@ SPOOLMAN_PORT="${EOS_SPOOLMAN_PORT:-7912}"
 
 log() { printf '[EOS backup] %s\n' "$*"; }
 die() { printf '[EOS backup] ERROR: %s\n' "$*" >&2; exit 1; }
-trap 'rc=$?; printf "[EOS backup] FAILED (exit %s, line %s). GitHub backup is NOT confirmed; any local commit remains on disk.\n" "$rc" "$LINENO" >&2' ERR
+failure_context='GitHub backup is NOT confirmed; any local commit remains on disk.'
+trap 'rc=$?; printf "[EOS backup] FAILED (exit %s, line %s). %s\n" "$rc" "$LINENO" "$failure_context" >&2' ERR
 
 command -v git >/dev/null || die 'git is not installed'
 command -v python3 >/dev/null || die 'python3 is not installed'
 command -v curl >/dev/null || die 'curl is not installed'
+command -v realpath >/dev/null || die 'realpath is not installed'
 [[ -d "$REPO/.git" ]] || die "No .git directory at $REPO"
 cd "$REPO"
+REPO="$(pwd -P)"
 [[ "$(git branch --show-current)" == "$BRANCH" ]] || die "Checkout branch $BRANCH before backing up (currently: $(git branch --show-current))."
 git remote get-url "$REMOTE" >/dev/null || die "Git remote '$REMOTE' is unavailable"
 
@@ -80,6 +83,32 @@ log 'Spoolman database verified and saved.'
 
 log 'Staging configuration, database snapshots, and symlinks...'
 git add -A -- .
+
+# Guard the explicit retirement list against accidentally reintroducing
+# a retired configuration file into new commits.
+if [[ -f .eos-retired-files ]]; then
+    python3 - "$REPO" <<'PY_RETIRED'
+import os, pathlib, subprocess, sys
+repo = pathlib.Path(sys.argv[1]).resolve()
+manifest = repo / '.eos-retired-files'
+for entry in manifest.read_text().splitlines():
+    if not entry or entry.startswith('#'):
+        continue
+    parts = entry.split('/')
+    if (entry.startswith('/') or '\r' in entry or
+            any(p in ('', '.', '..', '.git') for p in parts) or
+            entry == '.eos-retired-files'):
+        raise SystemExit('Invalid retired file path in .eos-retired-files: ' + repr(entry))
+    result = subprocess.run(['git', '-C', str(repo), 'ls-files',
+                             '--error-unmatch', '--', entry],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if result.returncode == 0:
+        raise SystemExit('Retired file is tracked/staged again: ' + entry)
+    location = repo.joinpath(*parts)
+    if location.exists() or location.is_symlink():
+        raise SystemExit('Retired file has reappeared locally: ' + entry)
+PY_RETIRED
+fi
 if ! git diff --cached --quiet; then
     git commit -m "EOS backup: $(date '+%Y-%m-%d %H:%M:%S %Z')"
 else
@@ -96,10 +125,67 @@ if ! git merge-base --is-ancestor "$remote_ref" HEAD; then
     die "Remote history diverged. Your local commit is saved. Reconcile $REMOTE/$BRANCH manually; no force push attempted."
 fi
 if [[ "$(git rev-parse HEAD)" == "$(git rev-parse "$remote_ref")" ]]; then
-    log 'SUCCESS: GitHub already matches local HEAD.'
+    log 'No pending commits; checking the remote directly.'
 else
     log 'Pushing pending commits to GitHub...'
     git push "$REMOTE" "HEAD:refs/heads/$BRANCH"
-    log 'SUCCESS: GitHub push completed.'
+fi
+
+# git push succeeding is not enough for deletion: check the live remote ref.
+# Do not remove any local archives unless GitHub itself advertises EXACTLY HEAD.
+remote_head="$(git ls-remote --exit-code "$REMOTE" "refs/heads/$BRANCH" | awk 'NR==1 {print $1}')"
+[[ -n "$remote_head" && "$remote_head" == "$(git rev-parse HEAD)" ]] || die 'Remote HEAD is not confirmed equal to local HEAD. No archive cleanup performed.'
+log "SUCCESS: GitHub confirmed at $(git rev-parse --short HEAD)."
+failure_context='Configuration/database commit is confirmed on GitHub. Archive cleanup may be incomplete; no unbacked files should have been removed.'
+
+# Cloud-backed archive cleanup (opt-in via default EOS_CLEAN_ARCHIVES=1).
+# A .zip/.bkp is eligible ONLY if it is tracked in the exact commit confirmed
+# above, is a regular local file, and still matches its committed blob.
+# Ignore .zip/.bkp files which are untracked, ignored, modified or symlinked.
+if [[ "${EOS_CLEAN_ARCHIVES:-1}" == 1 ]]; then
+    archive_paths=()
+    while IFS= read -r -d '' path; do
+        case "${path,,}" in
+            *.zip|*.bkp) ;;
+            *) continue ;;
+        esac
+        if [[ ! -f "$path" || -L "$path" ]]; then
+            log "Skipping missing/non-regular/symlink archive: $path"
+            continue
+        fi
+        # Protect against symlinked parent directories resolving outside repo.
+        resolved="$(realpath -m -- "$path")"
+        if [[ "$resolved" != "$REPO/"* ]]; then
+            log "WARNING: Skipping path outside repository: $path"
+            continue
+        fi
+        # Verify the bytes on disk still match what GitHub has received.
+        committed_blob="$(git rev-parse --verify "HEAD:$path")"
+        disk_blob="$(git hash-object -- "$path")"
+        if [[ "$disk_blob" != "$committed_blob" ]]; then
+            log "Skipping changed archive (not identical to pushed commit): $path"
+            continue
+        fi
+        archive_paths+=("$path")
+    done < <(git ls-files -z)
+
+    if (( ${#archive_paths[@]} > 0 )); then
+        log "Removing ${#archive_paths[@]} archive(s) whose exact bytes are backed up on GitHub..."
+        # git rm deletes local files AND stages the removal; this is safe because
+        # the immediately preceding commit containing them is on GitHub.
+        for path in "${archive_paths[@]}"; do
+            git rm -- "$path"
+        done
+        git commit -m 'EOS: retire cloud-backed ZIP/BKP archives'
+        log 'Pushing archive-removal commit (normal non-forced push)...'
+        git push "$REMOTE" "HEAD:refs/heads/$BRANCH"
+        remote_head="$(git ls-remote --exit-code "$REMOTE" "refs/heads/$BRANCH" | awk 'NR==1 {print $1}')"
+        [[ -n "$remote_head" && "$remote_head" == "$(git rev-parse HEAD)" ]] || die 'Archive-removal commit is not confirmed on GitHub; local cleanup commit is retained for retry.'
+        log 'SUCCESS: archive-removal commit confirmed; files remain recoverable from prior Git history.'
+    else
+        log 'No eligible tracked .zip/.bkp files to clean. Untracked/ignored archives are never deleted.'
+    fi
+else
+    log 'Archive cleanup disabled (EOS_CLEAN_ARCHIVES is not 1).'
 fi
 log "Backup complete at commit $(git rev-parse --short HEAD)."

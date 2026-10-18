@@ -114,6 +114,55 @@ fetch_db() {
 fetch_db 'backups/moonraker/moonraker-sql.db' "$recovery/moonraker-from-github.db"
 fetch_db 'backups/spoolman/spoolman.db' "$recovery/spoolman-from-github.db"
 
+# Explicit retired-file list is committed in GitHub history. After restoring
+# HEAD we may remove ONLY those exact, untracked leftovers. No glob cleanup.
+retired_manifest="$recovery/retired-files-from-github.txt"
+if git cat-file -e "$remote_ref:.eos-retired-files" 2>/dev/null; then
+    git show "$remote_ref:.eos-retired-files" > "$retired_manifest"
+fi
+retired_cleanup() {
+    local mode="$1"
+    [[ -f "$retired_manifest" ]] || return 0
+    python3 - "$REPO" "$remote_ref" "$retired_manifest" "$mode" <<'PY_RETIRED'
+import os, pathlib, subprocess, sys
+repo = pathlib.Path(sys.argv[1]).resolve()
+revision, manifest, mode = sys.argv[2:]
+# Validate against the fetched GitHub tree, not the local working index.
+remote_files = subprocess.check_output(
+    ['git', '-C', str(repo), 'ls-tree', '-r', '-z', '--name-only', revision]
+).split(b'\0')
+tracked = set(os.fsdecode(n) for n in remote_files if n)
+removals = []
+for entry in pathlib.Path(manifest).read_text().splitlines():
+    if not entry or entry.startswith('#'):
+        continue
+    parts = entry.split('/')
+    if (entry.startswith('/') or '\r' in entry or
+            any(p in ('', '.', '..', '.git') for p in parts) or
+            entry == '.eos-retired-files'):
+        raise SystemExit('Invalid retired path in GitHub manifest: ' + repr(entry))
+    if entry in tracked:
+        raise SystemExit('Manifest conflicts with actively tracked GitHub file: ' + entry)
+    for i in range(1, len(parts)):
+        parent = repo.joinpath(*parts[:i])
+        if parent.is_symlink():
+            raise SystemExit('Retired path has symlinked parent: ' + entry)
+    target = repo.joinpath(*parts)
+    if target.is_dir() and not target.is_symlink():
+        raise SystemExit('Refusing to remove a directory: ' + entry)
+    if target.exists() or target.is_symlink():
+        removals.append(target)
+if mode == 'remove':
+    for target in removals:
+        target.unlink()
+        print('[EOS restore] Removed retired leftover: ' + str(target.relative_to(repo)))
+else:
+    print('[EOS restore] Validated retirement list; %d leftover(s) to remove.' % len(removals))
+PY_RETIRED
+}
+# Validate before stopping any service or resetting the working tree.
+retired_cleanup check
+
 # Resolve exact unit name. The original installation used 'Spoolman', but
 # standard installations often use 'spoolman'. Avoid restoring a live DB.
 loaded_unit() {
@@ -146,6 +195,9 @@ stop_if_running() {
 # No git clean: untracked files are intentionally preserved.
 log "Restoring tracked config from $remote_ref..."
 git reset --hard "$remote_ref"
+# Tracked obsolete files disappear through the versioned deletion; this only
+# removes exact manifest-listed leftovers which Git sees as untracked.
+retired_cleanup remove
 
 replace_db() {
     local source="$1" destination="$2" directory tmp
@@ -169,4 +221,4 @@ log 'Checking symlinks (broken symlinks are reported but not deleted)...'
 find "$REPO" -path "$REPO/.git" -prune -o -type l ! -exec test -e '{}' \; -print || true
 log 'SUCCESS: restore completed. Stopped services will be restarted now.'
 log "Pre-restore recovery snapshot: $recovery"
-log 'Untracked files were preserved. Run git status --short to review them.'
+log 'Other untracked files were preserved. Run git status --short to review them.'
