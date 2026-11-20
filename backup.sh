@@ -21,6 +21,12 @@ command -v python3 >/dev/null || die 'python3 is not installed'
 command -v curl >/dev/null || die 'curl is not installed'
 command -v realpath >/dev/null || die 'realpath is not installed'
 [[ -d "$REPO/.git" ]] || die "No .git directory at $REPO"
+# Serialize Git backup/restore/retirement to avoid concurrent metadata writes.
+command -v flock >/dev/null || die 'flock is required'
+LOCK_DIR="${EOS_LOCK_DIR:-$HOME/.local/state/eos}"
+mkdir -p "$LOCK_DIR"
+exec 9>"$LOCK_DIR/git-operations.lock"
+flock -n 9 || die 'Another EOS Git operation is running; retry later.'
 cd "$REPO"
 REPO="$(pwd -P)"
 [[ "$(git branch --show-current)" == "$BRANCH" ]] || die "Checkout branch $BRANCH before backing up (currently: $(git branch --show-current))."
@@ -115,6 +121,10 @@ else
     log 'No new file changes; checking for earlier unpushed commits.'
 fi
 
+# Detect damage from the just-created Git objects before attempting any push.
+log 'Verifying Git objects after the local backup commit...'
+git fsck --full >/dev/null || die 'Git object corruption after commit; no push attempted.'
+
 # A normal push can fail when GitHub has moved. Do not auto-merge/rebase,
 # hard-reset, or force-push from an unattended backup job.
 log "Fetching $REMOTE/$BRANCH to validate the push..."
@@ -177,6 +187,8 @@ if [[ "${EOS_CLEAN_ARCHIVES:-1}" == 1 ]]; then
             git rm -- "$path"
         done
         git commit -m 'EOS: retire cloud-backed ZIP/BKP archives'
+        log 'Verifying Git objects after the archive-removal commit...'
+        git fsck --full >/dev/null || die 'Corrupt object after archive-removal commit; no push attempted.'
         log 'Pushing archive-removal commit (normal non-forced push)...'
         git push "$REMOTE" "HEAD:refs/heads/$BRANCH"
         remote_head="$(git ls-remote --exit-code "$REMOTE" "refs/heads/$BRANCH" | awk 'NR==1 {print $1}')"

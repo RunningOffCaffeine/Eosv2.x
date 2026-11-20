@@ -34,6 +34,12 @@ command -v git >/dev/null || die 'git is required'
 command -v python3 >/dev/null || die 'python3 is required'
 command -v tar >/dev/null || die 'tar is required'
 [[ -d "$REPO/.git" ]] || die "No .git directory at $REPO"
+# Serialize Git backup/restore/retirement to avoid concurrent metadata writes.
+command -v flock >/dev/null || die 'flock is required'
+LOCK_DIR="${EOS_LOCK_DIR:-$HOME/.local/state/eos}"
+mkdir -p "$LOCK_DIR"
+exec 9>"$LOCK_DIR/git-operations.lock"
+flock -n 9 || die 'Another EOS Git operation is running; retry later.'
 cd "$REPO"
 [[ "$(git branch --show-current)" == "$BRANCH" ]] || die "Checkout $BRANCH before restoring"
 log "Fetching $REMOTE/$BRANCH (no local changes overwritten yet)..."

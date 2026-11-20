@@ -44,6 +44,12 @@ mode="$1"; shift
 [[ "$mode" != --retire || $# -gt 0 ]] || die 'Supply exact paths after --retire.'
 command -v git >/dev/null || die 'git is required'
 [[ -d "$REPO/.git" ]] || die "No .git directory at $REPO"
+# Serialize Git backup/restore/retirement to avoid concurrent metadata writes.
+command -v flock >/dev/null || die 'flock is required'
+LOCK_DIR="${EOS_LOCK_DIR:-$HOME/.local/state/eos}"
+mkdir -p "$LOCK_DIR"
+exec 9>"$LOCK_DIR/git-operations.lock"
+flock -n 9 || die 'Another EOS Git operation is running; retry later.'
 cd "$REPO"
 [[ "$(git branch --show-current)" == "$BRANCH" ]] || die "Checkout branch $BRANCH first."
 [[ "$(git config --bool core.sparseCheckout || true)" != true ]] || die 'Sparse checkout is enabled; refusing missing-file retirement.'
